@@ -1,0 +1,5 @@
+*.o
+*.so
+*.pyc
+examples/
+pyVUMAT/__pycache__/
