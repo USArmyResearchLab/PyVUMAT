@@ -40,12 +40,15 @@ namespace {
 	      << "Make sure PYVUMAT_CONF_FILE environment variable "
 	      << " is set." << std::endl;
       logFile << message.str();
+      returnValue.clear();
+    } else {
+
+      //
+      // Set the conf file name
+      //
+      returnValue = tmpChar;
     }
 
-    //
-    // Set the conf file name
-    //
-    returnValue = tmpChar;
     return returnValue;
   }   
 
@@ -132,9 +135,12 @@ extern "C" void vumat_(
     //
     // Creates an instance of the class
     //
-    PyObject * pClassArg;
-    pClassArg = Py_BuildValue("(s)",
-			      _configFileName.c_str());
+    PyObject * pClassArg = NULL;
+
+    if (!_configFileName.empty()) {
+      pClassArg = Py_BuildValue("(s)",
+				_configFileName.c_str());
+    }
     
     _pyDriver = PyObject_CallObject(pClass, pClassArg);
     
@@ -171,10 +177,6 @@ extern "C" void vumat_(
 
   // 
   int nblock = blockInfo[0];
-
-  // Start timing
-  time_t _stm =time(NULL );  
-  struct tm * startTime = localtime ( &_stm );
 
   //
   // Create an empty tuple to pass as the argument
@@ -367,7 +369,7 @@ extern "C" void vumat_(
   PyDict_SetItemString(keywords,"fieldNew",(PyObject*)fieldNewArray);
 
   //
-  // Evaluate the pyML model for the inputs
+  // Evaluate the pyVUMAT model for the inputs
   //
   PyObject * retVal = PyObject_Call(_evaluateMethod,emptyArg,keywords);
 

@@ -19,7 +19,7 @@ NUMPY_INC_DIR = ${HOME}/.conda/envs/pytorch/lib/python3.9/site-packages/numpy/co
 CFLAGS = -fPIC -Wall -Wextra -O2 -g  # C flags
 LDFLAGS = -shared   # linking flags
 INCLUDES = -I$(PYTHON_INC_DIR) -I$(NUMPY_INC_DIR)
-LIBRARIES = -L${PYTHON_LIB_DIR} -l${PYTHON_LIB}
+LIBRARIES = -Wl,-rpath,${PYTHON_LIB_DIR} -L${PYTHON_LIB_DIR} -l${PYTHON_LIB}
 
 TARGET_LIB = libpyVUMAT.so  # target lib
 SRCS = pyVUMAT.cpp  # source files

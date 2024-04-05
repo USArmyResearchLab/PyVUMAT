@@ -18,7 +18,16 @@ except:
 
 class Driver:
 
-    def __init__(self,config_file):
+    def __init__(self,config_file=None):
+
+        if config_file == None:
+            print("\nError: This implementation of the Driver",
+                  "class requires an INI file\n",
+                  "      specified by the environment variable",
+                  "PYVUMAT_CONF_FILE\n")
+            sys.stdout.flush()
+            sys.exit()
+
         # Parse the options from the ini file
         parser = configparser.ConfigParser()
         parser.read(config_file)
