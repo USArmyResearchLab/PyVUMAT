@@ -4,7 +4,7 @@ The Python Vectorized User Material (PyVUMAT) framework enables users to develop
 
 ## Documentation
 
-Instructions to build and run PyVUMAT are provided in the [User's Guide](UsersGuide.pdf). The guide also provides guidance on how users can create custom VUMAT models in Python using PyVUMAT.
+Instructions to build and run PyVUMAT are provided in the [User's Guide](UsersGuide_PyVUMAT_2.0.pdf). The guide also provides guidance on how users can create custom VUMAT models in Python using PyVUMAT. Release notes describing changes made for version 2.0 are also provided.
 
 ## Citations
 

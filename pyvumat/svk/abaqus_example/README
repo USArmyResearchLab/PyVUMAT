@@ -1,0 +1,21 @@
+This directory contains the files to run a simple Abaqus simulation with
+PyVUMAT models.
+
+Description of files:
+
+1. example.inp - Abaqus input file. Simulates uniaxial compression in the Y
+                 direction of a unit cube with 8 elements in Abaqus/Explicit.
+ 		 The material model is a user material (the VUMAT) with two
+		 constants (Young's modulus and Poisson's ratio) and two state
+		 variables. This material model declaration is consistent with
+		 the analytical SVK and ML SVK implementations provided in the
+		 PyVUMAT source.
+
+2. run_abaqus.sh - Script outlining how to setup and run an Abaqus simulation
+                   using PyVUMAT for the VUMAT material model.
+
+3. pyVumat_Conf_svk.ini - Configuration file to run the analytical SVK model.
+
+4. pyVumat_Conf_svkNN.ini - Configuration file to run the ML-based SVK model.
+                            The user must modify the 'ModelFileName' keyword
+			    with the path the saved PyTorch model.

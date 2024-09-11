@@ -1,3 +1,6 @@
+# Train a PyTorch model using the fully connected feed-forward neural network
+# implemented in fcnn.py
+
 import numpy as np
 import argparse
 import torch
@@ -31,10 +34,15 @@ ap.add_argument("--train-ratio", default=0.9, type=float,
                 help="Ratio of data to use for training [0.9]")
 ap.add_argument("--test-ratio", default=0.1, type=float, 
                 help="Ratio of data to use for testing [0.1]")
+ap.add_argument("-t", default=32, type=int, 
+                help="Number of bits for pytorch type [32]")
 args = ap.parse_args()
 
 # Build the model using the command line arguments
 model = FCNN_Driver(cmd_args=args)
+
+num_params = sum(p.numel() for p in model.nn.parameters() if p.requires_grad)
+print("NUMBER OF TRAINABLE PARAMS:",num_params)
     
 # Read the files containing training and test data
 raw_data = np.loadtxt(args.in_file, 
@@ -54,8 +62,10 @@ if not dim == (input_dim + output_dim):
           ". Expected ", input_dim+output_dim)
 
 # Split the data into inputs and outputs
-data_input = data[:,:input_dim]
-data_output = data[:,input_dim:(input_dim+output_dim)]
+data_input = torch.tensor(data[:,:input_dim],
+                          requires_grad=False)
+data_output = torch.tensor(data[:,input_dim:(input_dim+output_dim)],
+                           requires_grad=False)
     
 # Scale input and output data and convert to torch tensors
 data_input = model.process_input(data_input, fit_scaler=True)
@@ -89,6 +99,7 @@ loss_func = nn.MSELoss()
 
 error_file = open(args.out_file + "_error.csv","w")
 error_file.write(str(args)+"\n\n\n")
+error_file.write("Number Params: " + str(num_params) + "\n\n")
 error_file.write("Epoch, Training Error, Test Error, \n")
 
 train_err = np.zeros((args.epochs,))

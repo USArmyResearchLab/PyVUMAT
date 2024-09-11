@@ -33,17 +33,14 @@ class UserVumat:
         # Evaluate the predicted output   
         with torch.no_grad():
 
-            # Dimension of arguments from VUMAT are in [n, num_points].
-            # Transpose to [num_points, n] as required in pytorch
-            input = torch.from_numpy(stretchNew.T)
+            # Convert input to PyTorch tensor
+            input = torch.from_numpy(stretchNew)
 
             # Predict stress 
             output = self.ml_model(input)
 
-            # Update new stress. Output of the ML model has dimension
-            # [num_points, n] as required in pytorch. Transpose to 
-            # [n, num_points] as expected in the VUMAT
-            stressNew = output.t().contiguous()
+            # Update new stress. 
+            stressNew = output.detach().cpu().numpy()
             
         # Only the stress is updated in this simple model so we 
         # return the old values for the other terms
