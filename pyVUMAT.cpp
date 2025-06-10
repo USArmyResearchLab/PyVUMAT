@@ -1,6 +1,8 @@
+/* Overwrite function name depending on requirements of the FEA code */
+//#define PYVUMAT_FUNC_NAME VUMAT20
+
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <fenv.h>
 
 #define PY_SSIZE_T_CLEAN
@@ -8,34 +10,37 @@
 #include <Python.h>
 #include <numpy/arrayobject.h>
 
-// Determine if compilation is in Abaqus
+/* Determine if compilation is in Abaqus and set function name */
 #if defined(ABQ_LINUX) || defined(ABQ_WIN86_64) || defined(ABQ_WIN86_32)
 #define IN_ABAQUS
 #include <omi_for_c.h>
+#elif defined(PYVUMAT_FUNC_NAME)
+#define FOR_NAME(lower_case_name,upper_case_name) PYVUMAT_FUNC_NAME
 #else
 #define FOR_NAME(lower_case_name,upper_case_name) lower_case_name
-#endif // In Abaqus
+#endif /* In Abaqus */
 
-// Define flag for memory layout of NumPy arrays
+/* Define flag for memory layout of NumPy arrays */
 #if defined(C_ORDERING)
 #define MEM_FLAG NPY_ARRAY_CARRAY_RO
 #else
 #define MEM_FLAG NPY_ARRAY_FARRAY_RO
 #endif
 
+/* Create a 1D numpy array */
 PyObject *
 create1dNpArray(npy_intp dim, const double *data) {
   
-  // Create numpy array
   npy_intp dims[1] = {dim};
   return PyArray_New(&PyArray_Type,
 		     1,dims,
 		     NPY_DOUBLE, NULL,
 		     (void *)data,
 		     0, MEM_FLAG,
-		     NULL);  
+		     NULL);
 }
 
+/* Create a 2D numpy array */
 PyObject *
 create2dNpArray(npy_intp dim1, npy_intp dim2, const double *data) {
 
@@ -49,20 +54,21 @@ create2dNpArray(npy_intp dim1, npy_intp dim2, const double *data) {
   dims[1] = dim2;
 #endif
     
-    // Create numpy array
-    return PyArray_New(&PyArray_Type,
-		       2,dims,
-		       NPY_DOUBLE, NULL,
-		       (void *)data,
-		       0, MEM_FLAG,
-		       NULL);  
+  return PyArray_New(&PyArray_Type,
+		     2,dims,
+		     NPY_DOUBLE, NULL,
+		     (void *)data,
+		     0, MEM_FLAG,
+		     NULL);
 }
 
-//
-// VUMAT function called by FEA codes.
-//
-extern "C" void FOR_NAME(vumat,VUMAT)(
-// Read only
+/*
+ * VUMAT function called by FEA codes.
+ */
+extern "C" 
+void
+FOR_NAME(vumat,VUMAT)(
+  /* Read only */
   const int *blockInfo, const int *ndirPtr, const int *nshrPtr,
   const int *nstatevPtr, const int *nfieldvPtr, const int *npropsPtr,
   const int *lanneal, const double *stepTime, const double *totalTime,
@@ -73,7 +79,7 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   const double *stressOld, const double *stateOld, const double *enerInternOld,
   const double *enerInelasOld, const double *tempNew, const double *stretchNew,
   const double *defgradNew, const double *fieldNew,
-// Write only
+  /* Write only */
   double *stressNew, double *stateNew, double *enerInternNew,
   double *enerInelasNew )
 {
@@ -83,68 +89,55 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   static PyObject *_evaluateMethod;
   static PyThreadState *_threadState;
 
-  //
-  // Perform initialization on the first step
-  //
+  /*
+   * Perform initialization on the first step
+   */
   if (!_isInitialized) {
 
-    //
-    // Create logging file
-    //
+    /* Create logging file */
     _logFile = fopen("pyvumat.log","a");
 
-    //
-    // Get the INI configuration file
-    //
+    /* Get the INI configuration file */
     char *configFileName = getenv("PYVUMAT_CONF_FILE");
 
+    /* Write warning that configure file was not found */
     if ( configFileName == NULL ) {
-      //
-      // Write warning that configure file was not found
-      //
       fprintf(_logFile, "Warning: Could not find the INI conf file.\n");
-      fprintf(_logFile, "Make sure PYVUMAT_CONF_FILE environment variable is set.");
+      fprintf(_logFile,
+	      "Make sure PYVUMAT_CONF_FILE environment variable is set.");
     }
     
-    //
-    // Initializes the Python interpreter
-    //
+    /* Initializes the Python interpreter */
     Py_Initialize();
     
-    // _import_array() causes floating point exception on some systems.
-    // Temporarily disable floating point exceptions to get through
-    // NumPy initialization
+    /*
+     * _import_array() causes floating point exception on some systems.
+     * Temporarily disable floating point exceptions to get through
+     * NumPy initialization
+     */
     fenv_t orig_feenv;
     feholdexcept(&orig_feenv);
     _import_array();
     fesetenv(&orig_feenv);
 
-    //
-    // Load the module object
-    //
+    /* Load the driver module */
     PyObject *pModuleName = PyUnicode_FromString("pyvumat.driver");
     
     PyObject *pModule = PyImport_Import(pModuleName);
     if (pModule == NULL) PyErr_Print();
     Py_XDECREF(pModuleName);
     
-    //
-    // Load the module's dict
-    //
+    /* Load the module's dict */
     PyObject *pDict = PyModule_GetDict(pModule);
     if (pDict == NULL) PyErr_Print();
     Py_XDECREF(pModule);
     
-    //
-    // Build the name of a callable class
-    //
+    /* Build the name of a callable class */
     PyObject *pClass = PyDict_GetItemString(pDict, "Driver");
     if (pClass == NULL || !PyCallable_Check(pClass)) PyErr_Print();
     Py_XDECREF(pDict);
     
-    //
-    // Creates an instance of the class
-    //
+    /* Creates an instance of the driver class */
     PyObject *pClassArg = NULL;
     if (configFileName != NULL) {
       pClassArg = Py_BuildValue("(s)",
@@ -157,11 +150,8 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
     Py_XDECREF(pClass);
     Py_XDECREF(pClassArg);
 
-    //
-    // Create the evaluate() method object
-    //
+    /* Create the evaluate() method object */
     _evaluateMethod = PyObject_GetAttrString(pyDriver,"evaluate");
-
     if (_evaluateMethod == NULL) PyErr_Print();
 
     Py_XDECREF(pyDriver);
@@ -171,15 +161,11 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
     
   } /* End initialization */
   
-  //
-  // Get lock to python interpreter
-  //
+  /* Get lock to python interpreter */
   PyGILState_STATE gState;
   gState =  PyGILState_Ensure();
 
-  //
-  // Get array sizes
-  //
+  /* Get array sizes */
   const int nblock = blockInfo[0];
   const int ndir = ndirPtr[0];
   const int nshr = nshrPtr[0];
@@ -187,19 +173,15 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   const int nfieldv = nfieldvPtr[0];
   const int nstatev = nstatevPtr[0];
 
-  //
-  // Create an empty tuple to pass as the argument
-  //
+  /* Create an empty tuple to pass as the argument */
   PyObject *emptyArg = Py_BuildValue("()");
   
-  //
-  // Create the keyword dict containing all inputs
-  //
+  /* Create the keyword dict containing all inputs */
   PyObject *keywords = PyDict_New();
 
-  //
-  // Add scalar arguments
-  //
+  /*
+   * Add scalar arguments
+   */
   PyObject *lanneal_py = Py_BuildValue("i",*lanneal);
   PyDict_SetItemString(keywords,"lanneal",lanneal_py);
 
@@ -230,104 +212,102 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   PyObject *nstatev_py = Py_BuildValue("i",nstatev);
   PyDict_SetItemString(keywords,"nstatev",nstatev_py);
   
-  //
-  // Convert the arrays to python arrays
-  //
+  /*
+   * Convert the arrays to python arrays
+   */
   
-  //  CoordMp
-  // Fixme: Is dimension 3, ndir, or something else?
+  /*  CoordMp */
+  /* Fixme: Is dimension 3, ndir, or something else? */
   PyObject *coordMpArray = create2dNpArray(nblock,ndir,coordMp);
   PyDict_SetItemString(keywords,"coordMp",coordMpArray);
 
-  //  CharLength
+  /* CharLength */
   PyObject *charLengthArray = create1dNpArray(nblock,charLength);
   PyDict_SetItemString(keywords,"charLength",charLengthArray);
 
-  //  Props
+  /* Props */
   PyObject *propsArray = create1dNpArray(nprops,props);
   PyDict_SetItemString(keywords,"props",propsArray);
 
-  //  Density
+  /* Density */
   PyObject *densityArray = create1dNpArray(nblock,density);
   PyDict_SetItemString(keywords,"density",densityArray);  
 
-  // StrainInc
+  /* StrainInc */
   PyObject *strainIncArray = create2dNpArray(nblock,ndir+nshr,
 					   strainInc);
   PyDict_SetItemString(keywords,"strainInc",strainIncArray);
 
-  // RelSpinInc
+  /* RelSpinInc */
   PyObject *relSpinIncArray = create2dNpArray(nblock,nshr,
 					      relSpinInc);
   PyDict_SetItemString(keywords,"relSpinInc",relSpinIncArray);
 
-  //  TempOld
+  /* TempOld */
   PyObject *tempOldArray = create1dNpArray(nblock,tempOld);
   PyDict_SetItemString(keywords,"tempOld",tempOldArray);
 
-  //  StretchOld
+  /* StretchOld */
   PyObject *stretchOldArray= create2dNpArray(nblock,ndir+nshr,
 					     stretchOld);
   PyDict_SetItemString(keywords,"stretchOld",stretchOldArray);
 
-  //  DefGradOld
+  /* DefGradOld */
   PyObject *defgradOldArray = create2dNpArray(nblock,
 					      ndir+nshr+nshr,
 					      defgradOld);
   PyDict_SetItemString(keywords,"defgradOld",defgradOldArray);
 
-  //  FieldOld
+  /* FieldOld */
   PyObject *fieldOldArray = create2dNpArray(nblock,nfieldv,
 					    fieldOld);
   PyDict_SetItemString(keywords,"fieldOld",fieldOldArray);
-
-  //  StressOld
+  
+  /* StressOld */
   PyObject *stressOldArray = create2dNpArray(nblock,ndir+nshr,
 					     stressOld);
   PyDict_SetItemString(keywords,"stressOld",stressOldArray);
 
-  //  StateOld
+  /* StateOld */
   PyObject *stateOldArray = create2dNpArray(nblock,nstatev,
 					    stateOld);
   PyDict_SetItemString(keywords,"stateOld",stateOldArray);
 
-  //  enerInternOld
+  /* enerInternOld */
   PyObject *enerInternOldArray = create1dNpArray(nblock,enerInternOld);
   PyDict_SetItemString(keywords,"enerInternOld",enerInternOldArray);
 
-  //  enerInelasOld
+  /* enerInelasOld */
   PyObject *enerInelasOldArray = create1dNpArray(nblock,enerInelasOld);
   PyDict_SetItemString(keywords,"enerInelasOld",enerInelasOldArray);
 
-  //  tempNew
+  /* tempNew */
   PyObject *tempNewArray = create1dNpArray(nblock,tempNew);
   PyDict_SetItemString(keywords,"tempNew",tempNewArray);
 
-  //  StretchNew
+  /* StretchNew */
   PyObject *stretchNewArray = create2dNpArray(nblock,ndir+nshr,
 					      stretchNew);
   PyDict_SetItemString(keywords,"stretchNew",stretchNewArray);
   
-  //  DefGradNew
+  /* DefGradNew */
   PyObject *defgradNewArray = create2dNpArray(nblock,
 					      ndir+nshr+nshr,
 					      defgradNew);
   PyDict_SetItemString(keywords,"defgradNew",defgradNewArray);
 
-  //  FieldNew
+  /* FieldNew */
   PyObject *fieldNewArray = create2dNpArray(nblock,nfieldv,
 					    fieldNew);
   PyDict_SetItemString(keywords,"fieldNew",fieldNewArray);
 
-  //
-  // Evaluate the pyVUMAT model for the inputs
-  //
+  /* Evaluate the pyVUMAT model for the inputs */
   PyObject *retVal = PyObject_Call(_evaluateMethod,emptyArg,keywords);
   if (retVal == NULL) PyErr_Print();
 
-  //
-  // Extract the results
-  //
+  /*
+   * Extract the results
+   */
   PyArrayObject *stressNewArray;
   PyArrayObject *stateNewArray;
   PyArrayObject *enerInternNewArray;  
@@ -339,12 +319,11 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
 				      &enerInelasNewArray);
   if (!parseSuccess) PyErr_Print();
 
-  //
-  // Store the results to return to FEA code
-  //
+  /*
+   * Store the results to return to FEA code
+   */
 
-  // StressNew
-  // Make sure the returned array is 2D (nblock x ndir+nshr);
+  /* StressNew */
   unsigned int numOutDims = PyArray_NDIM(stressNewArray);
   npy_intp *outDims = PyArray_DIMS(stressNewArray);
   assert(numOutDims == 2);
@@ -358,8 +337,7 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   double *tmpStressNew = (double *)PyArray_DATA(stressNewArray);
   memcpy(stressNew,tmpStressNew,nblock*(ndir+nshr)*sizeof(double));
 
-  // StateNew
-  // Make sure the returned array is 2D (nblock x nstatev);
+  /* StateNew */
   numOutDims = PyArray_NDIM(stateNewArray);
   outDims = PyArray_DIMS(stateNewArray);
   assert(numOutDims == 2);
@@ -373,8 +351,7 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   double *tmpStateNew = (double *)PyArray_DATA(stateNewArray);
   memcpy(stateNew,tmpStateNew,nblock*nstatev*sizeof(double));
 
-  // EnerInternNew
-  // Make sure the returned array is 1D (nblock);
+  /* EnerInternNew */
   numOutDims = PyArray_NDIM(enerInternNewArray);
   outDims = PyArray_DIMS(enerInternNewArray);
   assert(numOutDims == 1);  
@@ -382,8 +359,7 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   double *tmpEnerInternNew = (double *)PyArray_DATA(enerInternNewArray);
   memcpy(enerInternNew,tmpEnerInternNew,nblock*sizeof(double));
   
-  // EnerInelasNew
-  // Make sure the returned array is 1D (nblock);
+  /* EnerInelasNew */
   numOutDims = PyArray_NDIM(enerInelasNewArray);
   outDims = PyArray_DIMS(enerInelasNewArray);
   assert(numOutDims == 1);  
@@ -425,48 +401,15 @@ extern "C" void FOR_NAME(vumat,VUMAT)(
   Py_XDECREF(emptyArg);  
   Py_XDECREF(keywords);  
 
-  //
-  // Release GIL and return
-  //
+  /* Release GIL and return */
   PyGILState_Release(gState);
   
-  // Uncomment this line if you are printing to the
-  // log file and need to see the output in real time
-  //  fflush(_logFile);
+  /*
+   * Uncomment this line if you are printing to the
+   * log file and need to see the output in real time
+   */
+  
+  /* fflush(_logFile); */
 
   return;
 }
-
-#if !defined(IN_ABAQUS)
-extern "C" void vumat_(
-// Read only
-  const int *blockInfo, const int *ndir, const int *nshr, const int *nstatev,
-  const int *nfieldv, const int *nprops, const int *lanneal,
-  const double *stepTime, const double *totalTime, const double *dt,
-  const char *cmname, const double *coordMp, const double *charLength,
-  const double *props, const double *density, const double *strainInc,
-  const double *relSpinInc, const double *tempOld, const double *stretchOld,
-  const double *defgradOld, const double *fieldOld, const double *stressOld,
-  const double *stateOld, const double *enerInternOld,
-  const double *enerInelasOld, const double *tempNew, const double *stretchNew,
-  const double *defgradNew, const double *fieldNew,
-// Write only
-  double *stressNew, double *stateNew, double *enerInternNew, 
-  double *enerInelasNew )
-{
-  vumat(blockInfo, ndir, nshr, nstatev,
-	nfieldv, nprops, lanneal,
-	stepTime, totalTime, dt,
-	cmname, coordMp, charLength,
-	props, density, strainInc,
-	relSpinInc, tempOld, stretchOld,
-	defgradOld, fieldOld, stressOld,
-	stateOld, enerInternOld,
-	enerInelasOld, tempNew, stretchNew,
-	defgradNew, fieldNew,
-// Write only
-	stressNew, stateNew, enerInternNew,
-	enerInelasNew );
-  return;
-}
-#endif // Not in Abaqus

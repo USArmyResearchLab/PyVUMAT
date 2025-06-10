@@ -8,23 +8,6 @@ else:
 
 import numpy as np
     
-# Import user-defined models
-from pyvumat.svk.svk_vumat import SvkVumat
-from pyvumat.identity_vumat import IdentityVumat
-
-# These modules won't work without Python 3 and PyTorch
-# It's ok to skip imports if model is not used
-try:
-    from pyvumat.svk.svknn_vumat import SvkNnVumat
-    from pyvumat.simple_ml_vumat import UserVumat
-except:
-    print("\nWARNING: Could not load PyTorch VUMATs.")
-    print('If you plan to use these models, move import',
-          'statements outside of "try" \nstatement',
-          'to determine issue.\n')
-    sys.stdout.flush()
-    pass
-
 class Driver:
 
     def __init__(self,config_file=None):
@@ -45,21 +28,27 @@ class Driver:
             sys.stdout.flush()
             sys.exit()
 
-            
         # Parse the options from the ini file
         parser = configparser.ConfigParser()
         parser.read(config_file)
 
-        # Choose the model
+        # Choose, import, and instantiate model
         model_type = parser.get('Driver','model')
         if model_type == 'simple_ml':
+            from pyvumat.simple_ml_vumat import UserVumat
             self.model = UserVumat(config_file)
         elif model_type == 'svk':
+            from pyvumat.svk.svk_vumat import SvkVumat
             self.model = SvkVumat(config_file)
         elif model_type == 'svknn':
+            from pyvumat.svk.svknn_vumat import SvkNnVumat
             self.model = SvkNnVumat(config_file)
         elif model_type == 'identity':
+            from pyvumat.identity_vumat import IdentityVumat
             self.model = IdentityVumat(config_file)
+        elif model_type == 'jc':
+            from pyvumat.jc_vumat import JcVumat
+            self.model = JcVumat(config_file)
         else:
             print("\n Error: unknown model type \n")
             sys.stdout.flush()

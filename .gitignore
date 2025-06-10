@@ -2,5 +2,4 @@
 *.o
 *.so
 *.pyc
-examples/
-pyVUMAT/__pycache__/
+pyvumat/__pycache__/

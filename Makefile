@@ -14,11 +14,15 @@ PYTHON_INC_DIR =
 # Find with: python -c "from numpy import get_include; print(get_include())"
 NUMPY_INC_DIR =
 
+# Option to use old C ordering to be compatible with PyVUMAT 1.0
+#EXTRA_FLAGS += -DC_ORDERING
+
+
 ##################### END USER INPUT #####################
 
-CFLAGS = -fPIC -Wall -Wextra -O3 -g -Wno-unused-parameter #-DC_ORDERING 
+CFLAGS = -fPIC -Wall -Wextra -O3 -g -Wno-unused-parameter ${EXTRA_FLAGS}
 LDFLAGS = -shared
-INCLUDES = -I$(PYTHON_INC_DIR) -I$(NUMPY_INC_DIR) 
+INCLUDES = -I$(PYTHON_INC_DIR) -I$(NUMPY_INC_DIR)
 LIBRARIES = -Wl,-rpath,${PYTHON_LIB_DIR} -L${PYTHON_LIB_DIR} -l${PYTHON_LIB}
 
 TARGET_LIB = libpyvumat.so  # target lib

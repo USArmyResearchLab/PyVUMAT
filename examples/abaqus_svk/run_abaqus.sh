@@ -32,10 +32,10 @@ export PYTHONPATH=${PYTHON_ENV_DIR}/lib/python${PYTHON_VERSION}/site-packages:${
 #    model. The user must modify the 'ModelFileName' keyword with the path to
 #    the saved PyTorch model.
 
-export PYVUMAT_CONF_FILE=${VUMAT_DIR}/pyvumat/svk/abaqus_example/pyVumat_Conf_svkNN.ini
+export PYVUMAT_CONF_FILE=${VUMAT_DIR}/examples/abaqus_svk/pyVumat_Conf_svkNN.ini
 
 # 4) Make sure you have a local 'abaqus_v6.env' file that adds the header and
 #    library paths for Abaqus' Python install as described in the User's Guide.
 
 # 5) Run Abaqus
-abaqus job=example user=${VUMAT_DIR}/pyVUMAT.cpp verbose=2 double=both
+abaqus job=example user=${VUMAT_DIR}/pyVUMAT.cpp verbose=2 double=both interactive

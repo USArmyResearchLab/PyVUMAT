@@ -10,19 +10,19 @@ Instructions to build and run PyVUMAT are provided in the [User's Guide](UsersGu
 
 If PyVUMAT has been significant to your research, please cite:
 
--  Crone, Joshua C, "Python Vectorized User MATerial (PyVUMAT) Model 1.0 User's Guide", DEVCOM Army Research Laboratory, ARL-TR-9896 (2024).
+-  Crone, Joshua C. "PyVUMAT: A package to develop and deploy machine learning material models in finite element analysis simulations." Computational Materials Science 262 (2026): 114377.
 
 In bibtex format:
 
 ```
-@techreport{PyVumatGuide,
-  title       = "Python Vectorized User MATerial (PyVUMAT) Model 1.0 User's Guide",
-  author      = "Crone, Joshua C",
-  institution = "DEVCOM Army Research Laboratory",
-  address     = "Aberdeen Proving Ground, MD",
-  number      = "ARL-TR-9896",
-  year        = 2024,
-  month       = Mar
+@article{crone2026pyvumat,
+  title={PyVUMAT: A package to develop and deploy machine learning material models in finite element analysis simulations},
+  author={Crone, Joshua C},
+  journal={Computational Materials Science},
+  volume={262},
+  pages={114377},
+  year={2026},
+  publisher={Elsevier}
 }
 ```
 
